@@ -26,12 +26,3 @@ CoreLayer ist technologisch agnostisch konzipiert, ist aber optimiert für:
 * **Styling:** Tailwind CSS oder Custom CSS-Variables (Design Tokens)
 * **Icons:** Lucide-Icons / Phosphor Icons für ein technisches Look-and-Feel
 
-## 🚀 Schnellstart
-
-### Installation
-```bash
-# Repository klonen
-git clone [https://github.com/dein-account/corelayer-ui.git](https://github.com/dein-account/corelayer-ui.git)
-
-# Abhängigkeiten installieren
-npm install
