@@ -1,0 +1,71 @@
+# CV Studio – Produktionsnahes Setup
+#   cp .env.example .env   (Werte anpassen!)
+#   docker compose up -d --build
+# Optional mit Redis (Rate Limiting über mehrere Instanzen):
+#   docker compose --profile redis up -d
+name: cv-studio
+
+services:
+  database:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cvstudio}
+      POSTGRES_USER: ${POSTGRES_USER:-cvstudio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD muss gesetzt sein}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    profiles: [redis]
+    command: ['redis-server', '--save', '', '--appendonly', 'no']
+    networks: [internal]
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-cvstudio}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:-cvstudio}
+      STORAGE_DIR: /data
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      # Viele Container-Laufzeiten erlauben keine Chromium-Sandbox. Das Render-Bundle lädt
+      # ausschließlich lokale Dateien; alle Netzwerkzugriffe aus Chromium sind blockiert.
+      CHROMIUM_NO_SANDBOX: ${CHROMIUM_NO_SANDBOX:-true}
+    depends_on:
+      database:
+        condition: service_healthy
+    volumes:
+      - app-data:/data
+    # Chromium benötigt etwas mehr Shared Memory
+    shm_size: 512m
+    networks: [internal]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - '${HTTP_PORT:-8080}:8080'
+    networks: [internal]
+
+volumes:
+  db-data:
+  app-data:
+
+networks:
+  internal:

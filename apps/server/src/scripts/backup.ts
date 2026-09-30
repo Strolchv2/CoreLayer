@@ -1,4 +1,4 @@
-/** Datenbank-Backup per Kommandozeile/Cron: npm run backup (siehe README) */
+/** Datenbank-Backup per Kommandozeile/Cron: `npm run backup` bzw. `node dist/scripts/backup.js` (siehe README) */
 import { closeDb } from '../db/index.js';
 import { createBackup } from '../services/backup.js';
 

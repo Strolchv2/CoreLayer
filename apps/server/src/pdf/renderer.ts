@@ -53,8 +53,10 @@ class PdfRenderer {
   private async getBrowser(): Promise<Browser> {
     if (!this.browser) {
       const args = ['--disable-dev-shm-usage', '--font-render-hinting=none', '--disable-gpu'];
-      // Chromium verweigert die Sandbox als root (z. B. in Entwicklungscontainern)
-      if (typeof process.getuid === 'function' && process.getuid() === 0) args.push('--no-sandbox');
+      // Chromium verweigert die Sandbox als root; in manchen Container-Umgebungen fehlt die Kernel-Unterstützung.
+      // Das Render-Bundle lädt ausschließlich lokale Dateien (alle anderen Requests sind blockiert).
+      const isRoot = typeof process.getuid === 'function' && process.getuid() === 0;
+      if (isRoot || config.chromiumNoSandbox) args.push('--no-sandbox');
       this.browser = chromium
         .launch({ headless: true, executablePath: config.chromiumExecutablePath || undefined, args })
         .then((b) => {

@@ -21,6 +21,7 @@
     "test:e2e": "npm run test:e2e --workspace @cv-studio/web",
     "db:migrate": "npm run db:migrate --workspace @cv-studio/server",
     "db:seed": "npm run db:seed --workspace @cv-studio/server",
-    "create-admin": "npm run create-admin --workspace @cv-studio/server"
+    "create-admin": "npm run create-admin --workspace @cv-studio/server --",
+    "backup": "npm run backup --workspace @cv-studio/server"
   }
 }

@@ -17,9 +17,14 @@ export async function createBackup(): Promise<BackupDTO> {
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '_').slice(0, 15);
   const name = `cvstudio_${stamp}.dump`;
   const file = path.join(config.backupDir, name);
+  // Passwort über die Umgebung übergeben, damit es nicht in der Prozessliste erscheint
+  const dbUrl = new URL(config.databaseUrl);
+  const password = decodeURIComponent(dbUrl.password);
+  dbUrl.password = '';
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(config.pgDumpPath, ['--format=custom', '--no-owner', '--file', file, '--dbname', config.databaseUrl], {
+    const child = spawn(config.pgDumpPath, ['--format=custom', '--no-owner', '--file', file, '--dbname', dbUrl.toString()], {
       stdio: ['ignore', 'ignore', 'pipe'],
+      env: { ...process.env, ...(password ? { PGPASSWORD: password } : {}) },
     });
     let stderr = '';
     child.stderr.on('data', (d) => (stderr += String(d)));
