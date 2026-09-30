@@ -1,0 +1,914 @@
+/*
+ * CV-Dokument (Lebenslauf & Anschreiben)
+ * Druckorientiert (mm/pt), vollständig unabhängig vom UI-Theme (Light/Dark).
+ * Wird identisch in der Live-Vorschau und im PDF-Render-Bundle verwendet.
+ */
+@import './fonts.css';
+
+/* ------------------------------------------------------------------ */
+/* Messbereich (unsichtbar)                                            */
+/* ------------------------------------------------------------------ */
+.cv-measure {
+  position: absolute;
+  left: -20000px;
+  top: 0;
+  width: 210mm;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+  contain: layout style;
+}
+
+/* ------------------------------------------------------------------ */
+/* Seite                                                               */
+/* ------------------------------------------------------------------ */
+.cv-page {
+  --cv-accent: var(--cv-primary);
+  --cv-muted: color-mix(in srgb, var(--cv-text) 60%, #ffffff);
+  --cv-soft: color-mix(in srgb, var(--cv-primary) 9%, #ffffff);
+  --cv-line: color-mix(in srgb, var(--cv-text) 15%, #ffffff);
+  --cv-heading-color: var(--cv-primary);
+  width: 210mm;
+  height: 297mm;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  color: var(--cv-text);
+  font-family: var(--cv-font);
+  font-size: var(--cv-fs);
+  line-height: var(--cv-lh);
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  overflow-wrap: break-word;
+  text-align: left;
+  color-scheme: light;
+}
+.cv-page *,
+.cv-page *::before,
+.cv-page *::after {
+  box-sizing: border-box;
+}
+.cv-page p,
+.cv-page h1,
+.cv-page h2,
+.cv-page h3,
+.cv-page ul {
+  margin: 0;
+  padding: 0;
+  font-size: inherit;
+}
+.cv-page img {
+  display: block;
+}
+.cv-decor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.cv-top,
+.cv-body,
+.cv-footer {
+  position: relative;
+  z-index: 1;
+}
+.cv-top {
+  padding: var(--cv-margin) var(--cv-margin) 0;
+  flex: 0 0 auto;
+}
+.cv-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+.cv-col {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.cv-col--main {
+  flex: 1 1 auto;
+}
+.cv-col--sidebar {
+  flex: 0 0 var(--cv-sidebar-w);
+}
+
+/* Einspaltig */
+.cv-layout-single .cv-body {
+  padding: var(--cv-margin);
+}
+.cv-layout-single.cv-page--first .cv-top + .cv-body {
+  padding-top: var(--cv-section-gap);
+}
+
+/* Zweispaltig: Spalten tragen eigene Innenabstände (Seitenspalte randabfallend) */
+.cv-layout-sidebar-left .cv-col--main,
+.cv-layout-sidebar-right .cv-col--main {
+  padding: var(--cv-margin);
+}
+.cv-layout-sidebar-left .cv-col--main {
+  padding-left: calc(var(--cv-margin) * 0.85);
+}
+.cv-layout-sidebar-right .cv-col--main {
+  padding-right: calc(var(--cv-margin) * 0.85);
+}
+.cv-layout-sidebar-left .cv-col--sidebar,
+.cv-layout-sidebar-right .cv-col--sidebar {
+  padding: var(--cv-margin) calc(var(--cv-margin) * 0.75);
+}
+.cv-page--first .cv-top + .cv-body .cv-col {
+  padding-top: var(--cv-section-gap);
+}
+
+/* Seitenspalte: Hintergrundvarianten */
+.bg-white .cv-col--sidebar {
+  background: #ffffff;
+}
+.cv-layout-sidebar-left.bg-white .cv-col--sidebar {
+  border-right: 0.3mm solid var(--cv-line);
+}
+.cv-layout-sidebar-right.bg-white .cv-col--sidebar {
+  border-left: 0.3mm solid var(--cv-line);
+}
+.bg-tinted .cv-col--sidebar {
+  background: color-mix(in srgb, var(--cv-primary) 7%, #ffffff);
+}
+.bg-accent-band .cv-col--sidebar {
+  background: var(--cv-primary);
+  --cv-text: #ffffff;
+  --cv-accent: #ffffff;
+  --cv-heading-color: #ffffff;
+  --cv-muted: rgba(255, 255, 255, 0.78);
+  --cv-secondary: rgba(255, 255, 255, 0.86);
+  --cv-soft: rgba(255, 255, 255, 0.15);
+  --cv-line: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+.bg-accent-band .cv-col--sidebar .cv-icon {
+  color: #ffffff;
+}
+/* Einspaltig: dezente Akzente */
+.cv-layout-single.bg-accent-band .cv-decor::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3.2mm;
+  background: var(--cv-primary);
+}
+.cv-layout-single.bg-tinted .cv-top {
+  background: color-mix(in srgb, var(--cv-primary) 6%, #ffffff);
+  padding-bottom: calc(var(--cv-margin) * 0.7);
+}
+
+/* ------------------------------------------------------------------ */
+/* Fragmente & Abstände                                                */
+/* ------------------------------------------------------------------ */
+.cv-frag {
+  position: relative;
+}
+.cv-gap-none {
+  margin-top: 0;
+}
+.cv-gap-tight {
+  margin-top: 1.4mm;
+}
+.cv-gap-item {
+  margin-top: var(--cv-item-gap);
+}
+.cv-gap-section {
+  margin-top: var(--cv-section-gap);
+}
+.cv-frag.cv-is-heading + .cv-frag {
+  margin-top: calc(var(--cv-item-gap) * 0.45 + 0.6mm);
+}
+.cv-col > .cv-frag:first-child {
+  margin-top: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Typografie                                                          */
+/* ------------------------------------------------------------------ */
+.cv-name {
+  font-family: var(--cv-heading-font);
+  font-size: calc(var(--cv-fs) * var(--cv-hs) * 2.25);
+  line-height: 1.08;
+  font-weight: 700;
+  color: var(--cv-heading-color);
+  letter-spacing: -0.01em;
+}
+.cv-jobtitle {
+  margin-top: 1.4mm;
+  font-size: calc(var(--cv-fs) * 1.22);
+  line-height: 1.3;
+  color: var(--cv-secondary);
+  font-weight: 600;
+}
+.cv-h2 {
+  font-family: var(--cv-heading-font);
+  font-size: calc(var(--cv-fs) * var(--cv-hs));
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--cv-heading-color);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding-bottom: 1.1mm;
+}
+.lines-thin .cv-h2 {
+  border-bottom: 0.3mm solid color-mix(in srgb, var(--cv-accent) 45%, #ffffff);
+}
+.lines-thick .cv-h2 {
+  border-bottom: 0.75mm solid var(--cv-accent);
+}
+.lines-double .cv-h2 {
+  border-bottom: 0.9mm double var(--cv-accent);
+}
+.bg-accent-band .cv-col--sidebar .cv-h2 {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.cv-entry-head {
+  break-inside: avoid;
+}
+.cv-entry-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 3mm;
+}
+.cv-entry-title {
+  font-weight: 700;
+  color: var(--cv-text);
+  line-height: 1.3;
+}
+.cv-entry-sub {
+  color: var(--cv-secondary);
+  line-height: 1.35;
+  margin-top: 0.3mm;
+}
+.cv-entry-meta {
+  color: var(--cv-muted);
+  font-size: 0.92em;
+  margin-top: 0.3mm;
+}
+.cv-entry-date {
+  color: var(--cv-muted);
+  font-size: 0.92em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+.cv-entry-head--above .cv-entry-date {
+  white-space: normal;
+  color: var(--cv-accent);
+  font-weight: 600;
+  font-size: 0.86em;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.4mm;
+}
+.cv-entry-link {
+  padding-top: 0.6mm;
+  font-size: 0.92em;
+}
+.cv-row {
+  display: grid;
+  grid-template-columns: var(--cv-date-col) minmax(0, 1fr);
+  column-gap: 4mm;
+}
+.cv-row-date {
+  color: var(--cv-muted);
+  font-size: 0.93em;
+  line-height: 1.4;
+  padding-top: 0.2mm;
+  font-variant-numeric: tabular-nums;
+}
+.cv-p {
+  padding-top: 0.8mm;
+  white-space: pre-line;
+}
+.cv-summary {
+  text-align: left;
+}
+.cv-profile-headline {
+  font-weight: 700;
+  font-size: 1.05em;
+  color: var(--cv-accent);
+}
+.cv-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8mm 5mm;
+  padding-top: 1.4mm;
+}
+.cv-fact-label {
+  font-weight: 700;
+  color: var(--cv-secondary);
+}
+.cv-tech {
+  padding-top: 0.8mm;
+}
+.cv-label {
+  padding-top: 1.3mm;
+  font-weight: 700;
+  font-size: 0.9em;
+  color: var(--cv-secondary);
+}
+.cv-list {
+  list-style: none;
+}
+.cv-list li {
+  position: relative;
+  padding: 0.45mm 0 0 1.15em;
+}
+.cv-list li::before {
+  content: '';
+  position: absolute;
+  left: 0.2em;
+  top: calc(0.45mm + (var(--cv-lh) * 1em - 0.38em) / 2);
+  width: 0.38em;
+  height: 0.38em;
+  border-radius: 50%;
+  background: var(--cv-accent);
+}
+.cv-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Kenntnisse, Sprachen, Tags */
+.cv-skill-group-name {
+  font-weight: 700;
+  color: var(--cv-secondary);
+  font-size: 0.92em;
+  margin-bottom: 1mm;
+}
+.cv-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2mm;
+}
+.cv-tag {
+  display: inline-block;
+  padding: 0.35mm 1.9mm;
+  border-radius: 1.2mm;
+  background: var(--cv-soft);
+  color: var(--cv-accent);
+  font-size: 0.9em;
+  line-height: 1.45;
+}
+.cv-skill-text {
+  line-height: var(--cv-lh);
+}
+.cv-skill-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3mm;
+  padding-top: 0.9mm;
+}
+.cv-skill-name {
+  min-width: 0;
+}
+.cv-bar {
+  flex: 0 0 38%;
+  max-width: 26mm;
+  height: 1.5mm;
+  border-radius: 1mm;
+  background: var(--cv-line);
+  overflow: hidden;
+  display: block;
+}
+.cv-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--cv-accent);
+  border-radius: 1mm;
+}
+.cv-dots {
+  display: inline-flex;
+  gap: 0.8mm;
+  flex: 0 0 auto;
+}
+.cv-dots i {
+  display: inline-block;
+  width: 1.9mm;
+  height: 1.9mm;
+  border-radius: 50%;
+  background: var(--cv-line);
+}
+.cv-dots i.on {
+  background: var(--cv-accent);
+}
+.cv-lang-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 3mm;
+}
+.cv-lang-name {
+  font-weight: 700;
+}
+.cv-lang-level {
+  color: var(--cv-muted);
+  text-align: right;
+}
+.cv-lang--graphic .cv-bar,
+.cv-lang--graphic .cv-dots {
+  margin-top: 0.8mm;
+}
+.cv-lang--graphic .cv-bar {
+  max-width: none;
+  width: 100%;
+}
+.cv-col--sidebar .cv-lang-line {
+  flex-direction: column;
+  gap: 0;
+}
+.cv-col--sidebar .cv-lang-level {
+  text-align: left;
+  font-size: 0.92em;
+}
+.cv-col--sidebar .cv-skill-row {
+  flex-wrap: wrap;
+  gap: 0.6mm 2mm;
+}
+.cv-col--sidebar .cv-bar {
+  flex-basis: 100%;
+  max-width: none;
+}
+.cv-ref .cv-entry-meta {
+  margin-top: 0.4mm;
+}
+
+/* Kontaktdaten & Icons */
+.cv-contact {
+  list-style: none;
+}
+.cv-contact--inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1mm 4.5mm;
+  margin-top: 2.6mm;
+  font-size: 0.95em;
+}
+.cv-contact--inline + .cv-contact--inline {
+  margin-top: 1.2mm;
+}
+.cv-contact--list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5mm;
+  padding-top: 0.4mm;
+}
+.cv-contact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5mm;
+  min-width: 0;
+}
+.cv-contact--inline .cv-contact-item {
+  align-items: center;
+}
+.cv-contact-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.cv-contact-label {
+  font-weight: 700;
+  color: var(--cv-secondary);
+}
+.cv-icon {
+  display: inline-flex;
+  width: 1.08em;
+  height: 1.08em;
+  flex: 0 0 auto;
+  color: var(--cv-accent);
+  margin-top: 0.12em;
+}
+.cv-contact--inline .cv-icon {
+  margin-top: 0;
+}
+.cv-icon svg {
+  width: 100%;
+  height: 100%;
+}
+.icons-filled .cv-icon {
+  width: 1.55em;
+  height: 1.55em;
+  padding: 0.28em;
+  border-radius: 50%;
+  background: var(--cv-accent);
+  color: #ffffff;
+  margin-top: -0.12em;
+}
+.bg-accent-band .cv-col--sidebar .cv-icon {
+  color: #ffffff;
+}
+.icons-filled.bg-accent-band .cv-col--sidebar .cv-icon {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Foto */
+.cv-photo {
+  width: var(--cv-photo);
+  height: calc(var(--cv-photo) * 1.25);
+  overflow: hidden;
+  flex: 0 0 auto;
+  background: var(--cv-soft);
+}
+.cv-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cv-photo--circle {
+  height: var(--cv-photo);
+  border-radius: 50%;
+}
+.cv-photo--rounded {
+  border-radius: 2.5mm;
+}
+.cv-col--sidebar .cv-photo {
+  margin: 0 auto;
+}
+.bg-accent-band .cv-col--sidebar .cv-photo {
+  box-shadow: 0 0 0 0.8mm rgba(255, 255, 255, 0.35);
+}
+
+/* Kopfbereich (oben) */
+.cv-header {
+  display: flex;
+  align-items: center;
+  gap: 7mm;
+}
+.cv-header-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.cv-header .cv-photo {
+  order: 2;
+}
+.hdr-centered .cv-header {
+  flex-direction: column;
+  text-align: center;
+  gap: 4mm;
+}
+.hdr-centered .cv-header .cv-photo {
+  order: 0;
+}
+.hdr-centered .cv-contact--inline {
+  justify-content: center;
+}
+.hdr-split .cv-header {
+  padding-bottom: 4mm;
+  border-bottom: 0.3mm solid var(--cv-line);
+  align-items: flex-end;
+}
+.hdr-colored .cv-top {
+  background: var(--cv-primary);
+  color: #ffffff;
+  padding-bottom: calc(var(--cv-margin) * 0.75);
+  --cv-heading-color: #ffffff;
+  --cv-accent: #ffffff;
+  --cv-secondary: rgba(255, 255, 255, 0.86);
+  --cv-muted: rgba(255, 255, 255, 0.8);
+  --cv-text: #ffffff;
+}
+.hdr-colored .cv-top .cv-contact-label {
+  color: #ffffff;
+}
+.hdr-colored.icons-filled .cv-top .cv-icon {
+  background: rgba(255, 255, 255, 0.18);
+}
+.hdr-colored .cv-top .cv-photo {
+  box-shadow: 0 0 0 0.8mm rgba(255, 255, 255, 0.35);
+}
+
+/* Name in der Hauptspalte (Vorlagen mit Seitenspalte) */
+.cv-namebar {
+  padding-bottom: 1mm;
+}
+
+/* Fußzeile */
+.cv-footer {
+  position: absolute;
+  left: var(--cv-margin);
+  right: var(--cv-margin);
+  bottom: calc(var(--cv-margin) * 0.36);
+  display: flex;
+  justify-content: space-between;
+  gap: 4mm;
+  font-size: 7pt;
+  line-height: 1.2;
+  color: color-mix(in srgb, var(--cv-text) 50%, #ffffff);
+}
+.cv-layout-sidebar-left .cv-footer {
+  left: calc(var(--cv-sidebar-w) + var(--cv-margin) * 0.85);
+}
+.cv-layout-sidebar-right .cv-footer {
+  right: calc(var(--cv-sidebar-w) + var(--cv-margin) * 0.85);
+}
+
+/* Zeitleiste */
+.has-timeline .cv-col--main .cv-tl {
+  margin-left: 1.3mm;
+  padding-left: 5mm;
+  border-left: 0.35mm solid var(--cv-line);
+}
+.has-timeline .cv-col--main .cv-tl-head::before {
+  content: '';
+  position: absolute;
+  left: -1.25mm;
+  top: 0.9mm;
+  width: 2.15mm;
+  height: 2.15mm;
+  border-radius: 50%;
+  background: var(--cv-accent);
+  box-shadow: 0 0 0 0.7mm #ffffff;
+}
+
+/* ================================================================== */
+/* Vorlagen                                                            */
+/* ================================================================== */
+
+/* 1. Classic – klassisch deutsch, Datumsspalte links */
+.tpl-classic .cv-name {
+  font-size: calc(var(--cv-fs) * var(--cv-hs) * 2.1);
+  font-weight: 700;
+}
+.tpl-classic .cv-h2 {
+  font-size: calc(var(--cv-fs) * var(--cv-hs) * 0.98);
+  letter-spacing: 0.1em;
+}
+.tpl-classic .cv-jobtitle {
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* 2. Modern – farbige Seitenspalte */
+.tpl-modern .cv-name {
+  font-size: calc(var(--cv-fs) * var(--cv-hs) * 2.45);
+  letter-spacing: -0.02em;
+}
+.tpl-modern .cv-name-last {
+  font-weight: 700;
+}
+.tpl-modern .cv-name-first {
+  font-weight: 400;
+}
+.tpl-modern .cv-jobtitle {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: calc(var(--cv-fs) * 1.05);
+}
+.tpl-modern .cv-col--main .cv-h2 {
+  display: flex;
+  align-items: center;
+  gap: 2.5mm;
+}
+.tpl-modern .cv-col--main .cv-h2::before {
+  content: '';
+  width: 6mm;
+  height: 0.9mm;
+  border-radius: 0.5mm;
+  background: var(--cv-secondary);
+  flex: 0 0 auto;
+}
+.tpl-modern .cv-col--sidebar .cv-h2 {
+  font-size: calc(var(--cv-fs) * 1.02);
+  letter-spacing: 0.14em;
+}
+.tpl-modern .cv-col--sidebar .cv-tag {
+  border-radius: 3mm;
+}
+
+/* 3. Minimal – viel Weißraum, zurückhaltende Überschriften */
+.tpl-minimal .cv-name {
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  font-size: calc(var(--cv-fs) * var(--cv-hs) * 2.6);
+}
+.tpl-minimal .cv-jobtitle {
+  font-weight: 400;
+  color: var(--cv-muted);
+}
+.tpl-minimal .cv-h2 {
+  font-size: calc(var(--cv-fs) * 0.86);
+  letter-spacing: 0.22em;
+  color: var(--cv-muted);
+  font-weight: 700;
+}
+.tpl-minimal .cv-tag {
+  background: transparent;
+  border: 0.25mm solid var(--cv-line);
+  color: var(--cv-text);
+}
+.tpl-minimal .cv-list li::before {
+  background: var(--cv-muted);
+}
+
+/* 4. Professional – farbiger Kopf, Seitenspalte rechts */
+.tpl-professional .cv-col--main .cv-h2 {
+  border-left: 1.2mm solid var(--cv-accent);
+  padding-left: 2.2mm;
+  border-bottom: none;
+}
+.tpl-professional .cv-col--sidebar .cv-h2 {
+  font-size: calc(var(--cv-fs) * 1.02);
+}
+.tpl-professional .cv-name {
+  font-size: calc(var(--cv-fs) * var(--cv-hs) * 2.2);
+}
+
+/* 5. Executive – souverän, Serifen-Name, kräftige Linien */
+.tpl-executive .cv-name {
+  font-weight: 600;
+  font-size: calc(var(--cv-fs) * var(--cv-hs) * 2.15);
+  letter-spacing: 0.01em;
+}
+.tpl-executive .cv-jobtitle {
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  font-weight: 400;
+}
+.tpl-executive .cv-h2 {
+  font-variant: small-caps;
+  text-transform: none;
+  letter-spacing: 0.1em;
+  font-size: calc(var(--cv-fs) * var(--cv-hs) * 1.05);
+}
+.tpl-executive .cv-entry-title {
+  font-size: 1.04em;
+}
+.tpl-executive .cv-list li::before {
+  background: var(--cv-secondary);
+}
+
+/* 6. Creative – kräftige Akzente, Zeitleiste */
+.tpl-creative .cv-name {
+  font-size: calc(var(--cv-fs) * var(--cv-hs) * 2.4);
+  line-height: 1;
+}
+.tpl-creative .cv-name-last {
+  display: block;
+  color: var(--cv-secondary);
+}
+.tpl-creative .cv-namebar::after {
+  content: '';
+  display: block;
+  width: 16mm;
+  height: 1.2mm;
+  margin-top: 2.5mm;
+  border-radius: 1mm;
+  background: var(--cv-secondary);
+}
+.tpl-creative .cv-col--main .cv-h2 {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: calc(var(--cv-fs) * var(--cv-hs) * 1.15);
+}
+.tpl-creative .cv-tag {
+  border-radius: 4mm;
+  padding: 0.35mm 2.4mm;
+}
+.tpl-creative .cv-entry-head--above .cv-entry-date {
+  color: var(--cv-secondary);
+}
+
+/* 7. ATS – maximal maschinenlesbar */
+.tpl-ats .cv-name {
+  font-size: calc(var(--cv-fs) * var(--cv-hs) * 1.9);
+  color: var(--cv-text);
+}
+.tpl-ats .cv-jobtitle {
+  color: var(--cv-text);
+  font-weight: 400;
+}
+.tpl-ats .cv-h2 {
+  color: var(--cv-text);
+  letter-spacing: 0.04em;
+}
+.tpl-ats .cv-tag {
+  background: transparent;
+  padding: 0;
+  color: var(--cv-text);
+}
+.tpl-ats .cv-tag:not(:last-child)::after {
+  content: ',';
+}
+.tpl-ats .cv-list li::before {
+  background: var(--cv-text);
+}
+
+/* 8. Technical – Monospace-Akzente */
+.tpl-technical .cv-h2 {
+  text-transform: none;
+  letter-spacing: 0;
+}
+.tpl-technical .cv-h2 span::before {
+  content: '> ';
+  color: var(--cv-secondary);
+}
+.tpl-technical .cv-jobtitle,
+.tpl-technical .cv-entry-date,
+.tpl-technical .cv-tag {
+  font-family: var(--cv-heading-font);
+}
+.tpl-technical .cv-tag {
+  font-size: 0.82em;
+  border-radius: 0.6mm;
+  border: 0.25mm solid color-mix(in srgb, var(--cv-primary) 30%, #ffffff);
+  background: color-mix(in srgb, var(--cv-primary) 5%, #ffffff);
+}
+.tpl-technical .cv-list li::before {
+  border-radius: 0;
+  width: 0.34em;
+  height: 0.34em;
+}
+
+/* 9. Elegant – zentriert, feine Linien */
+.tpl-elegant .cv-name {
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  font-size: calc(var(--cv-fs) * var(--cv-hs) * 2.3);
+}
+.tpl-elegant .cv-jobtitle {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--cv-secondary);
+}
+.tpl-elegant .cv-h2 {
+  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 4mm;
+  border-bottom: none !important;
+  letter-spacing: 0.2em;
+  font-weight: 400;
+}
+.tpl-elegant .cv-h2::before,
+.tpl-elegant .cv-h2::after {
+  content: '';
+  flex: 1 1 auto;
+  border-top: 0.25mm solid var(--cv-secondary);
+}
+.tpl-elegant.lines-double .cv-h2::before,
+.tpl-elegant.lines-double .cv-h2::after {
+  border-top: 0.9mm double var(--cv-secondary);
+}
+.tpl-elegant.lines-none .cv-h2::before,
+.tpl-elegant.lines-none .cv-h2::after {
+  border-top-color: transparent;
+}
+.tpl-elegant .cv-row-date {
+  font-style: italic;
+}
+.tpl-elegant .cv-list li::before {
+  background: var(--cv-secondary);
+}
+
+/* ================================================================== */
+/* Anschreiben                                                         */
+/* ================================================================== */
+.cv-letter .cv-letter-sender-line {
+  font-size: 7pt;
+  color: var(--cv-muted);
+  border-bottom: 0.2mm solid var(--cv-line);
+  padding-bottom: 0.6mm;
+  margin-bottom: 1.5mm;
+  display: inline-block;
+}
+.cv-letter-address {
+  line-height: 1.45;
+  min-height: 27mm;
+}
+.cv-letter-date {
+  text-align: right;
+  color: var(--cv-text);
+}
+.cv-letter-subject {
+  font-weight: 700;
+  font-size: 1.05em;
+  color: var(--cv-heading-color);
+}
+.cv-letter .cv-p {
+  padding-top: 0;
+  text-align: left;
+}
+.cv-letter-signature img {
+  height: 16mm;
+  width: auto;
+  max-width: 60mm;
+  object-fit: contain;
+  margin: 1mm 0;
+}
+.cv-letter-signature-space {
+  height: 12mm;
+}

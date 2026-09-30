@@ -1,0 +1,19 @@
+/* Nur im PDF-Render-Bundle: Seiten ohne Ränder und ohne Browser-UI drucken */
+@page {
+  size: A4;
+  margin: 0;
+}
+html,
+body.cv-render-body {
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+}
+#render-root > .cv-page {
+  break-after: page;
+  page-break-after: always;
+}
+#render-root > .cv-page:last-child {
+  break-after: auto;
+  page-break-after: auto;
+}
