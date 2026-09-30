@@ -51,8 +51,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await api.post('/api/auth/logout');
     } finally {
-      queryClient.clear();
+      // Zuerst den Benutzer auf null setzen (aktive Beobachter werden benachrichtigt), danach alle
+      // übrigen Daten des Kontos verwerfen. Ein vollständiges clear() würde die Me-Abfrage entfernen,
+      // während ihr Beobachter noch den alten Benutzer hält.
+      await queryClient.cancelQueries();
       queryClient.setQueryData(ME_KEY, null);
+      queryClient.removeQueries({ predicate: (q) => q.queryKey[0] !== ME_KEY[0] });
       try {
         // Lokale Entwurfssicherungen gehören zum Benutzer – beim Abmelden entfernen
         Object.keys(localStorage)
