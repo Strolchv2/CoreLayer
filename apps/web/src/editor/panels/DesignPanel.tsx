@@ -133,7 +133,7 @@ export function DesignPanel({ showDateFormat = true }: { showDateFormat?: boolea
         <Button
           variant="outline"
           size="sm"
-          className="w-full"
+          className="h-auto w-full whitespace-normal py-2 text-left"
           icon={<RotateCcw className="h-4 w-4" />}
           onClick={() => {
             update((d) => {

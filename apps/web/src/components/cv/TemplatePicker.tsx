@@ -42,10 +42,10 @@ export function TemplatePicker({
                 <TemplateThumbnail templateKey={tpl.key} locale={locale} />
               </div>
             </div>
-            <div className="flex items-center justify-between gap-2 px-3 py-2">
-              <span className="truncate text-sm font-medium">{tpl.name[locale]}</span>
+            <div className={cn('flex items-center justify-between gap-1', compact ? 'px-2 py-1.5' : 'px-3 py-2')}>
+              <span className={cn('truncate font-medium', compact ? 'text-xs' : 'text-sm')}>{tpl.name[locale]}</span>
               {selected ? (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                   <Check className="h-3 w-3" />
                 </span>
               ) : tpl.atsFriendly && !compact ? (

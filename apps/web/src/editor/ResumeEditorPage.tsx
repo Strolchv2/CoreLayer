@@ -150,18 +150,19 @@ function EditorView({ store, resumeId }: { store: EditorStore; resumeId: string 
       <TitleInput />
       <SaveIndicator onRetry={() => void saveNow()} />
       <div className="ml-auto flex items-center gap-1.5">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="hidden md:inline-flex"
-          icon={<FileText className="h-4 w-4" />}
-          onClick={async () => {
-            await flush().catch(() => undefined);
-            window.open(`/api/resumes/${resumeId}/preview`, '_blank', 'noopener');
-          }}
-        >
-          {t('editor.pdfPreview')}
-        </Button>
+        <span className="hidden md:block">
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<FileText className="h-4 w-4" />}
+            onClick={async () => {
+              await flush().catch(() => undefined);
+              window.open(`/api/resumes/${resumeId}/preview`, '_blank', 'noopener');
+            }}
+          >
+            {t('editor.pdfPreview')}
+          </Button>
+        </span>
         <div className="flex">
           <Button size="sm" className="rounded-r-none" icon={<Download className="h-4 w-4" />} onClick={() => setExportOpen(true)} data-testid="export-button">
             <span className="hidden sm:inline">{t('editor.exportPdf')}</span>

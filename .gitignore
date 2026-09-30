@@ -12,3 +12,4 @@ playwright-report/
 .vite/
 *.tsbuildinfo
 .DS_Store
+.tmp-*.mjs
