@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.local
+*.log
+storage/
+!apps/server/storage/.gitkeep
+test-results/
+playwright-report/
+.vite/
+*.tsbuildinfo
+.DS_Store

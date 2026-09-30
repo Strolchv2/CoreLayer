@@ -1,0 +1,26 @@
+{
+  "name": "cv-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CV Studio – professionelle Lebensläufe erstellen, gestalten und als PDF exportieren.",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "npm run dev --workspace @cv-studio/server & npm run dev --workspace @cv-studio/web",
+    "dev:server": "npm run dev --workspace @cv-studio/server",
+    "dev:web": "npm run dev --workspace @cv-studio/web",
+    "build": "npm run build --workspace @cv-studio/web && npm run build --workspace @cv-studio/server",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "npm run test:e2e --workspace @cv-studio/web",
+    "db:migrate": "npm run db:migrate --workspace @cv-studio/server",
+    "db:seed": "npm run db:seed --workspace @cv-studio/server",
+    "create-admin": "npm run create-admin --workspace @cv-studio/server"
+  }
+}
