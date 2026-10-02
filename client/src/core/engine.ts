@@ -13,7 +13,6 @@ import {
 } from '@corelayer/protocol';
 import { PreKeyWhisperMessage } from '@privacyresearch/libsignal-protocol-protobuf-ts';
 import {
-  FingerprintGenerator,
   SessionBuilder,
   SessionCipher,
   SignalProtocolAddress,
@@ -21,6 +20,7 @@ import {
 import { Api, ApiError } from './api';
 import { bytesEqual, fromB64, randomHex, toArrayBuffer, toB64, utf8 } from './encoding';
 import { decryptFile, encryptFile } from './files';
+import { safetyNumber } from './fingerprint';
 import {
   PREKEY_LOW_WATERMARK,
   SIGNED_PREKEY_ROTATION_MS,
@@ -64,7 +64,6 @@ export class IdentityChangedError extends Error {
 export type ConnectionStatus = 'offline' | 'connecting' | 'online';
 export type EngineListener = () => void;
 
-const SAFETY_NUMBER_ITERATIONS = 5200;
 const ttlLabel = (s: number) => TTL_OPTIONS.find((o) => o.seconds === s)?.label ?? `${s}s`;
 
 // ---------------------------------------------------------------------------
@@ -572,7 +571,7 @@ export class Messenger {
   displayName(accountId: string): string {
     if (accountId === this.me) return 'You';
     const c = this.state.contacts[accountId];
-    return c?.alias || c?.nickname || accountId;
+    return c?.alias || c?.nickname || this.state.nicknames?.[accountId] || accountId;
   }
 
   // --- safety numbers --------------------------------------------------------
@@ -580,12 +579,7 @@ export class Messenger {
   async safetyNumber(accountId: string): Promise<string | null> {
     const rec = this.state.signal.identities[accountId];
     if (!rec) return null;
-    const fp = await new FingerprintGenerator(SAFETY_NUMBER_ITERATIONS).createFor(
-      this.me,
-      toArrayBuffer(fromB64(this.state.account.identity.pub)),
-      accountId,
-      toArrayBuffer(fromB64(rec.pendingKey ?? rec.key)),
-    );
+    const fp = await safetyNumber(this.me, fromB64(this.state.account.identity.pub), accountId, fromB64(rec.pendingKey ?? rec.key));
     return fp.match(/.{5}/g)!.join(' ');
   }
 
@@ -677,9 +671,12 @@ export class Messenger {
     const sentAt = Math.min(content.sentAt, now); // never trust a sender clock in the future
     const expiresAt = sentAt + content.ttl * 1000;
 
-    // Remember the nickname the sender chose (if they are a known contact).
+    // Remember the nickname the sender chose (shown e.g. for group members).
     const contact = this.state.contacts[from];
-    if (contact && content.nick && contact.nickname !== content.nick) contact.nickname = content.nick;
+    if (content.nick) {
+      if (contact) contact.nickname = content.nick;
+      (this.state.nicknames ??= {})[from] = content.nick;
+    }
 
     let convId: string;
     if (content.group) {

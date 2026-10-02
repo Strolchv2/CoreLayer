@@ -8,6 +8,7 @@ import type { Db } from './db.js';
 export async function sweepExpired(db: Db): Promise<void> {
   await db.query('DELETE FROM mailbox WHERE expires_at <= now()');
   await db.query('DELETE FROM blobs WHERE expires_at <= now()');
+  await db.query('DELETE FROM used_challenges WHERE expires_at <= now()');
   await db.query('DELETE FROM accounts WHERE retain_until < current_date');
 }
 

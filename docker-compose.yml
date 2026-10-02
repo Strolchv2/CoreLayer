@@ -1,0 +1,86 @@
+# CoreLayer reference deployment. See docs/deployment.md.
+name: corelayer
+
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  logging:
+    driver: local
+    options: { max-size: "1m", max-file: "2" }
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: corelayer
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: corelayer
+    # [privacy] No statement, connection or parameter logging.
+    command:
+      - postgres
+      - -c
+      - log_statement=none
+      - -c
+      - log_min_error_statement=panic
+      - -c
+      - log_connections=off
+      - -c
+      - log_disconnections=off
+      - -c
+      - log_error_verbosity=terse
+      - -c
+      - log_min_messages=warning
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    tmpfs: [/tmp, /var/run/postgresql]
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U corelayer"]
+      interval: 5s
+      retries: 10
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: local
+      options: { max-size: "1m", max-file: "2" }
+
+  relay:
+    <<: *hardening
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      DATABASE_URL: postgres://corelayer:${POSTGRES_PASSWORD}@db:5432/corelayer
+      HOST: 0.0.0.0
+      PORT: "3000"
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://localhost}
+      TRUST_PROXY: "1"
+    deploy:
+      replicas: ${RELAY_REPLICAS:-2}
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [backend]
+
+  web:
+    <<: *hardening
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    ports:
+      - "80:8080"
+      - "443:8443"
+    volumes:
+      - ./infra/certs:/etc/nginx/certs:ro
+    tmpfs: [/tmp]
+    depends_on: [relay]
+    networks: [backend, frontend]
+
+networks:
+  backend:
+    internal: true # database and relays are unreachable from the internet
+  frontend: {}
+
+volumes:
+  dbdata:

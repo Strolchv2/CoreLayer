@@ -44,7 +44,7 @@ describe.skipIf(!DB_URL)('end-to-end through the relay', () => {
 
   beforeAll(async () => {
     db = createPool(DB_URL!);
-    await db.query('DROP TABLE IF EXISTS recovery_backups, blobs, mailbox, one_time_prekeys, accounts CASCADE');
+    await db.query('DROP TABLE IF EXISTS used_challenges, recovery_backups, blobs, mailbox, one_time_prekeys, accounts CASCADE');
     await migrate(db);
     app = await buildApp({ config: { host: '127.0.0.1', port: 0, databaseUrl: DB_URL!, allowedOrigins: [], trustProxy: false, sessionSecret: SECRET }, db });
     await app.listen({ host: '127.0.0.1', port: 0 });
@@ -108,6 +108,8 @@ describe.skipIf(!DB_URL)('end-to-end through the relay', () => {
     const gid = gconv.slice(2);
     await waitFor(() => mb.state.groups[gid] && mc.state.groups[gid]);
     expect(mc.state.groups[gid]!.members.sort()).toEqual([ma.me, mb.me, mc.me].sort());
+    // Nicknames announced inside encrypted messages are shown for non-contacts.
+    expect(mc.displayName(ma.me)).toBe('A');
 
     await mb.sendText(convIdForGroup(gid), 'hello group');
     await waitFor(() => lastText(ma, gconv)?.text === 'hello group');
@@ -122,7 +124,7 @@ describe.skipIf(!DB_URL)('end-to-end through the relay', () => {
 
     // The server holds no trace of the group.
     const tables = await db.query(`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY 1`);
-    expect(tables.rows.map((r) => r.table_name)).toEqual(['accounts', 'blobs', 'mailbox', 'one_time_prekeys', 'recovery_backups']);
+    expect(tables.rows.map((r) => r.table_name)).toEqual(['accounts', 'blobs', 'mailbox', 'one_time_prekeys', 'recovery_backups', 'used_challenges']);
 
     await mc.leaveGroup(gid);
     await waitFor(() => !ma.state.groups[gid]!.members.includes(mc.me));

@@ -4,7 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import WebSocket from 'ws';
 import { AUTH_SIGNATURE_CONTEXT, ENVELOPE_BUCKETS, SEALED_BOX_OVERHEAD } from '@corelayer/protocol';
 import { buildApp } from '../src/app.js';
-import { TokenService, accountIdFromAuthKey } from '../src/auth.js';
+import { ChallengeService, TokenService, accountIdFromAuthKey } from '../src/auth.js';
 import { sweepExpired } from '../src/cleanup.js';
 import { createPool, migrate, type Db } from '../src/db.js';
 import { coarseExpiry } from '../src/privacy.js';
@@ -32,6 +32,25 @@ describe('bearer tokens', () => {
   });
 });
 
+describe('login challenges', () => {
+  it('are authentic, expire and are bound to the secret', () => {
+    const c = new ChallengeService(Buffer.alloc(32, 1));
+    const ch = c.issue();
+    expect(Buffer.from(ch, 'base64')).toHaveLength(32);
+    expect(c.check(ch)).not.toBeNull();
+    expect(new ChallengeService(Buffer.alloc(32, 2)).check(ch)).toBeNull();
+    const raw = Buffer.from(ch, 'base64');
+    raw.writeUInt32BE(0xffffffff, 12); // tampered expiry
+    expect(c.check(raw.toString('base64'))).toBeNull();
+    vi.useFakeTimers({ now: Date.now() + 61_000 });
+    try {
+      expect(c.check(ch)).toBeNull(); // expired
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('privacy helpers', () => {
   it('rounds expiry up to the minute', () => {
     const d = coarseExpiry(5, Date.UTC(2026, 0, 1, 12, 0, 30));
@@ -45,7 +64,7 @@ describe.skipIf(!DB_URL)('relay API', () => {
 
   beforeAll(async () => {
     db = createPool(DB_URL!);
-    await db.query('DROP TABLE IF EXISTS recovery_backups, blobs, mailbox, one_time_prekeys, accounts CASCADE');
+    await db.query('DROP TABLE IF EXISTS used_challenges, recovery_backups, blobs, mailbox, one_time_prekeys, accounts CASCADE');
     await migrate(db);
     app = await buildApp({
       config: { host: '127.0.0.1', port: 0, databaseUrl: DB_URL!, allowedOrigins: ['https://chat.example'], trustProxy: false, sessionSecret: SECRET },
@@ -57,7 +76,7 @@ describe.skipIf(!DB_URL)('relay API', () => {
     await db?.end();
   });
   beforeEach(async () => {
-    await db.query('TRUNCATE recovery_backups, blobs, mailbox, one_time_prekeys, accounts CASCADE');
+    await db.query('TRUNCATE used_challenges, recovery_backups, blobs, mailbox, one_time_prekeys, accounts CASCADE');
   });
 
   const challenge = async () => (await app.inject({ method: 'GET', url: '/api/v1/auth/challenge' })).json().challenge as string;
@@ -236,6 +255,12 @@ describe.skipIf(!DB_URL)('relay API', () => {
       const port = (nodeB.server.address() as { port: number }).port;
       // A token issued by node A is accepted by node B (stateless, shared secret).
       const tokB = token;
+      // A challenge issued by node B can be redeemed on node A, but only once.
+      const cB = (await nodeB.inject({ method: 'GET', url: '/api/v1/auth/challenge' })).json().challenge as string;
+      const sig = keys.sign(Buffer.concat([Buffer.from(AUTH_SIGNATURE_CONTEXT.session), Buffer.from(cB, 'base64')])).toString('base64');
+      const login = () => app.inject({ method: 'POST', url: '/api/v1/auth/session', payload: { accountId: id, challenge: cB, signature: sig } });
+      expect((await login()).statusCode).toBe(200);
+      expect((await login()).statusCode).toBe(401);
       const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
       const received: { t: string; id?: string }[] = [];
       ws.on('message', (d) => received.push(JSON.parse(String(d))));

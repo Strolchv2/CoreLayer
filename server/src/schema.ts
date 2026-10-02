@@ -51,6 +51,14 @@ CREATE TABLE IF NOT EXISTS blobs (
 );
 CREATE INDEX IF NOT EXISTS blobs_expires_idx ON blobs (expires_at);
 
+-- Replay protection for login challenges: the HMAC tag of each redeemed
+-- challenge, kept only until the challenge would have expired (60 seconds).
+-- Not linked to any account.
+CREATE TABLE IF NOT EXISTS used_challenges (
+  tag        bytea       PRIMARY KEY,
+  expires_at timestamptz NOT NULL
+);
+
 -- Optional encrypted account backup, addressed by a value derived from the
 -- user's recovery key. The server never sees the recovery key.
 CREATE TABLE IF NOT EXISTS recovery_backups (

@@ -83,6 +83,8 @@ export interface VaultState {
   /** Keyed by conversation id: `u:<accountId>` or `g:<groupId>`. */
   conversations: Record<string, ChatMessage[]>;
   settings: { defaultTtl: number };
+  /** Nicknames peers announced inside their encrypted messages (local only). */
+  nicknames?: Record<string, string>;
   /** Present when an encrypted recovery backup is enabled (kept up to date automatically). */
   recovery?: { backupId: string; key: string };
 }

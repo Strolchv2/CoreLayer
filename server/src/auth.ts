@@ -12,7 +12,6 @@ import { ACCOUNT_ID_DOMAIN, formatAccountId } from '@corelayer/protocol';
 
 const CHALLENGE_TTL_MS = 60_000;
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
-const MAX_PENDING_CHALLENGES = 100_000;
 
 const ED25519_SPKI_PREFIX = Buffer.from('302a300506032b6570032100', 'hex');
 
@@ -38,27 +37,36 @@ export function verifyEd25519(publicKey: Uint8Array, message: Uint8Array, signat
   }
 }
 
-export class ChallengeStore {
-  private pending = new Map<string, number>();
+/**
+ * Login challenges: `nonce(12) || expiry(4, seconds) || HMAC tag(16)`.
+ * Issuing one stores nothing (so anonymous GETs cannot fill a table), and any
+ * relay node can check it. Single use is enforced when a challenge is
+ * redeemed: its tag is recorded in `used_challenges` until it expires.
+ */
+export class ChallengeService {
+  constructor(private readonly secret: Buffer) {}
 
   issue(): string {
-    this.sweep();
-    if (this.pending.size >= MAX_PENDING_CHALLENGES) throw new Error('challenge store full');
-    const c = randomBytes(32).toString('base64');
-    this.pending.set(c, Date.now() + CHALLENGE_TTL_MS);
-    return c;
+    const payload = Buffer.alloc(16);
+    randomBytes(12).copy(payload);
+    payload.writeUInt32BE(Math.floor((Date.now() + CHALLENGE_TTL_MS) / 1000), 12);
+    return Buffer.concat([payload, this.tag(payload)]).toString('base64');
   }
 
-  /** Single use: a challenge is consumed whether or not the signature is valid. */
-  consume(challenge: string): boolean {
-    const exp = this.pending.get(challenge);
-    this.pending.delete(challenge);
-    return exp !== undefined && exp > Date.now();
+  /** Checks authenticity and expiry. Returns the tag and expiry for the replay check, or null. */
+  check(challenge: string): { tag: Buffer; expiresAt: Date } | null {
+    const raw = Buffer.from(challenge, 'base64');
+    if (raw.length !== 32) return null;
+    const payload = raw.subarray(0, 16);
+    const tag = raw.subarray(16);
+    if (!timingSafeEqual(tag, this.tag(payload))) return null;
+    const exp = payload.readUInt32BE(12) * 1000;
+    if (exp <= Date.now()) return null;
+    return { tag: Buffer.from(tag), expiresAt: new Date(exp) };
   }
 
-  private sweep(): void {
-    const now = Date.now();
-    for (const [c, exp] of this.pending) if (exp <= now) this.pending.delete(c);
+  private tag(payload: Buffer): Buffer {
+    return createHmac('sha256', this.secret).update('challenge').update(payload).digest().subarray(0, 16);
   }
 }
 

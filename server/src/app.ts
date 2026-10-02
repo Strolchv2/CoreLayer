@@ -28,7 +28,7 @@ import {
   type PublicIdentity,
   type ServerWsMessage,
 } from '@corelayer/protocol';
-import { ChallengeStore, TokenService, accountIdFromAuthKey, verifyEd25519 } from './auth.js';
+import { ChallengeService, TokenService, accountIdFromAuthKey, verifyEd25519 } from './auth.js';
 import type { Config } from './config.js';
 import type { Db } from './db.js';
 import { anonymizeAddress, coarseExpiry } from './privacy.js';
@@ -66,7 +66,7 @@ export async function buildApp({ config, db }: AppDeps): Promise<FastifyInstance
     bodyLimit: 256 * 1024,
   });
 
-  const challenges = new ChallengeStore();
+  const challenges = new ChallengeService(config.sessionSecret);
   const tokens = new TokenService(config.sessionSecret);
   const relay = new Relay(db);
   await relay.start();
@@ -131,6 +131,22 @@ export async function buildApp({ config, db }: AppDeps): Promise<FastifyInstance
     return accountId;
   };
 
+  /**
+   * Verifies `signature` over context || challenge with `publicKey` and burns
+   * the challenge. Throws 401 on any failure.
+   */
+  const redeemChallenge = async (challenge: string, context: string, publicKey: Buffer | undefined, signature: string) => {
+    const c = challenges.check(challenge);
+    if (!c) throw new HttpError(401, 'invalid challenge');
+    const msg = Buffer.concat([Buffer.from(context), b(challenge)]);
+    if (!publicKey || !verifyEd25519(publicKey, msg, b(signature))) throw new HttpError(401, 'invalid signature');
+    const r = await db.query('INSERT INTO used_challenges (tag, expires_at) VALUES ($1, $2) ON CONFLICT DO NOTHING', [
+      c.tag,
+      c.expiresAt,
+    ]);
+    if (r.rowCount !== 1) throw new HttpError(401, 'invalid challenge');
+  };
+
   const refreshRetention = (accountId: string) =>
     db.query(
       `UPDATE accounts SET retain_until = (date_trunc('month', now()) + interval '7 months')::date WHERE id = $1`,
@@ -152,10 +168,8 @@ export async function buildApp({ config, db }: AppDeps): Promise<FastifyInstance
     { config: { rateLimit: { max: 10, timeWindow: '1 hour' } } },
     async (req, reply) => {
       const body = parse(registerRequestSchema, req.body);
-      if (!challenges.consume(body.challenge)) throw new HttpError(401, 'invalid challenge');
       const authKey = b(body.authPublicKey);
-      const msg = Buffer.concat([Buffer.from(AUTH_SIGNATURE_CONTEXT.register), b(body.challenge)]);
-      if (!verifyEd25519(authKey, msg, b(body.signature))) throw new HttpError(401, 'invalid signature');
+      await redeemChallenge(body.challenge, AUTH_SIGNATURE_CONTEXT.register, authKey, body.signature);
 
       const accountId = accountIdFromAuthKey(authKey);
       const client = await db.connect();
@@ -193,13 +207,10 @@ export async function buildApp({ config, db }: AppDeps): Promise<FastifyInstance
 
   app.post(`${API_PREFIX}/auth/session`, { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (req) => {
     const body = parse(sessionRequestSchema, req.body);
-    if (!challenges.consume(body.challenge)) throw new HttpError(401, 'invalid challenge');
     const row = await db.query<{ auth_public_key: Buffer }>('SELECT auth_public_key FROM accounts WHERE id = $1', [
       body.accountId,
     ]);
-    const key = row.rows[0]?.auth_public_key;
-    const msg = Buffer.concat([Buffer.from(AUTH_SIGNATURE_CONTEXT.session), b(body.challenge)]);
-    if (!key || !verifyEd25519(key, msg, b(body.signature))) throw new HttpError(401, 'invalid signature');
+    await redeemChallenge(body.challenge, AUTH_SIGNATURE_CONTEXT.session, row.rows[0]?.auth_public_key, body.signature);
     await refreshRetention(body.accountId);
     return { token: tokens.create(body.accountId), expiresInSeconds: tokens.ttlSeconds };
   });

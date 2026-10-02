@@ -7,6 +7,8 @@ export default defineConfig({
   build: {
     target: 'es2022',
     sourcemap: true, // open source: shipped code should be easy to audit
+    // One bundle: libsodium and the Signal library are large and always needed.
+    chunkSizeWarningLimit: 2000,
   },
   server: {
     proxy: {
