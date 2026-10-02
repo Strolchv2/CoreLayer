@@ -1,0 +1,21 @@
+{
+  "name": "corelayer",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "workspaces": [
+    "packages/protocol",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "build": "npm run build -w @corelayer/protocol && npm run build -w @corelayer/server && npm run build -w @corelayer/client",
+    "typecheck": "npm run build -w @corelayer/protocol && npm run typecheck -w @corelayer/server && npm run typecheck -w @corelayer/client",
+    "test": "npm run build -w @corelayer/protocol && npm test -w @corelayer/client && npm test -w @corelayer/server",
+    "dev:server": "npm run dev -w @corelayer/server",
+    "dev:client": "npm run dev -w @corelayer/client"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
