@@ -22,7 +22,11 @@ die()  { printf '\033[1;31m[x] %s\033[0m\n' "$*" >&2; exit 1; }
 
 [[ $EUID -eq 0 ]] || die "Bitte als root ausführen."
 command -v apt-get >/dev/null || die "Nur Debian/Ubuntu werden unterstützt."
-[[ -t 0 ]] || die "Bitte interaktiv ausführen (Passwortabfragen)."
+
+# Ohne Terminal (z.B. "ssh root@host bash setup.sh ...") werden keine Passwörter
+# abgefragt: der Admin bekommt sudo ohne Passwort, root setzt man danach selbst.
+INTERACTIVE=0
+[[ -t 0 ]] && INTERACTIVE=1
 
 PUBKEY_SRC="${1:-}"
 [[ -n $PUBKEY_SRC ]] || die "Public Key fehlt. Aufruf: bash setup.sh /root/id_ed25519.pub"
@@ -81,9 +85,15 @@ if ! id "$ADMIN_USER" >/dev/null 2>&1; then
 fi
 usermod -aG sudo "$ADMIN_USER"
 
-if passwd -S "$ADMIN_USER" | awk '{print $2}' | grep -qv '^P$'; then
-  echo "Passwort für '$ADMIN_USER' setzen (wird für sudo gebraucht):"
-  passwd "$ADMIN_USER"
+if [[ $INTERACTIVE -eq 1 ]]; then
+  if passwd -S "$ADMIN_USER" | awk '{print $2}' | grep -qv '^P$'; then
+    echo "Passwort für '$ADMIN_USER' setzen (wird für sudo gebraucht):"
+    passwd "$ADMIN_USER"
+  fi
+else
+  echo "$ADMIN_USER ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/90-$ADMIN_USER"
+  chmod 440 "/etc/sudoers.d/90-$ADMIN_USER"
+  visudo -cq || die "sudoers-Datei fehlerhaft."
 fi
 
 SSH_DIR="/home/$ADMIN_USER/.ssh"
@@ -93,9 +103,11 @@ grep -qxF "$PUBKEY" "$SSH_DIR/authorized_keys" || printf '%s\n' "$PUBKEY" >> "$S
 chown "$ADMIN_USER:$ADMIN_USER" "$SSH_DIR/authorized_keys"
 chmod 600 "$SSH_DIR/authorized_keys"
 
-log "Neues root-Passwort setzen (das alte stand im Klartext im Chat)"
-echo "Nur noch für die VNC-/Notfallkonsole des Anbieters nötig, SSH-Login als root wird gesperrt."
-passwd root
+if [[ $INTERACTIVE -eq 1 ]]; then
+  log "Neues root-Passwort setzen (das alte stand im Klartext im Chat)"
+  echo "Nur noch für die VNC-/Notfallkonsole des Anbieters nötig, SSH-Login als root wird gesperrt."
+  passwd root
+fi
 
 # --- Firewall & Fail2ban ----------------------------------------------------
 
@@ -153,3 +165,8 @@ cat <<EOF
 
   Offene Ports: 22 (SSH), 80/443 (Web), $MC_PORT (Minecraft)
 EOF
+
+if [[ $INTERACTIVE -eq 0 ]]; then
+  warn "root-Passwort wurde NICHT geändert. Selbst setzen mit:"
+  warn "  ssh -t $ADMIN_USER@$IP \"sudo passwd root\""
+fi
