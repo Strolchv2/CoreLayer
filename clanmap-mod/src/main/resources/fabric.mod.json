@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "clanmap",
+  "version": "${version}",
+  "name": "Clan Map Sync",
+  "description": "Spielerliste, Clan-Einladungen und gemeinsame Kartensynchronisation. Kompatibel zu Xaero's World Map und Minimap.",
+  "authors": ["CoreLayer"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.corelayer.clanmap.ClanMapMod"],
+    "client": ["dev.corelayer.clanmap.client.ClanMapClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.0",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "xaeroworldmap": "*",
+    "xaerominimap": "*"
+  }
+}
